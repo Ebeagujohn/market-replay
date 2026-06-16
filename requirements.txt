@@ -1,0 +1,6 @@
+django>=5.0,<7.0
+pandas>=2.0
+yfinance>=0.2
+mplfinance>=0.12
+opencv-python-headless>=4.8
+matplotlib>=3.8

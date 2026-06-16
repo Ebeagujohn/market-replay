@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Market Replay — EUR/USD</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .spinner {
+      animation: spin 0.8s linear infinite;
+    }
+  </style>
+</head>
+<body class="h-full bg-zinc-950 text-zinc-100 font-sans antialiased">
+  <div class="min-h-full flex flex-col">
+    <!-- Header -->
+    <header class="border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-sm">
+      <div class="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/60 flex items-center justify-center">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <span class="text-sm font-semibold tracking-wide text-zinc-100">Market Replay</span>
+        </div>
+        <span class="text-xs text-zinc-500 font-medium tracking-wider uppercase">Forex</span>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 flex items-center justify-center px-6 py-16">
+      <div class="w-full max-w-2xl space-y-10">
+        <!-- Hero -->
+        <div class="text-center space-y-3">
+          <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-50">
+            EUR/USD Price Replay
+          </h1>
+          <p class="text-zinc-400 text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+            Compile a cinematic candlestick animation from the latest hourly market data.
+          </p>
+        </div>
+
+        <!-- Asset card -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 sm:p-8 space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-1">Asset</p>
+              <p class="text-lg font-semibold text-zinc-100">EUR/USD</p>
+              <p class="text-sm text-zinc-400 mt-0.5">1-Hour · Past 7 Days</p>
+            </div>
+            <div class="hidden sm:block px-3 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700/50">
+              <span class="text-xs font-medium text-emerald-400">Live Data</span>
+            </div>
+          </div>
+
+          <!-- Generate button -->
+          <button
+            id="generate-btn"
+            type="button"
+            class="w-full py-3.5 px-6 rounded-xl bg-zinc-100 hover:bg-white text-zinc-900 font-semibold text-sm tracking-wide transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 focus:ring-offset-zinc-900"
+          >
+            Generate Replay Video
+          </button>
+
+          <!-- Loading state -->
+          <div id="loading-state" class="hidden flex items-center justify-center gap-3 py-2">
+            <div class="spinner w-5 h-5 border-2 border-zinc-600 border-t-emerald-400 rounded-full"></div>
+            <p class="text-sm text-zinc-400">Compiling candlestick frames…</p>
+          </div>
+
+          <!-- Error state -->
+          <p id="error-state" class="hidden text-sm text-red-400 text-center"></p>
+        </div>
+
+        <!-- Video player -->
+        <div id="video-container" class="hidden">
+          <div class="rounded-2xl border border-zinc-800 bg-zinc-900/30 overflow-hidden">
+            <video
+              id="replay-video"
+              class="w-full aspect-video bg-black"
+              controls
+              playsinline
+            >
+              Your browser does not support HTML5 video.
+            </video>
+          </div>
+          <p class="text-center text-xs text-zinc-500 mt-3">Replay ready — use native controls to play</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-zinc-800/60 py-4">
+      <p class="text-center text-xs text-zinc-600">Powered by yfinance · mplfinance · OpenCV</p>
+    </footer>
+  </div>
+
+  <script>
+    const btn = document.getElementById('generate-btn');
+    const loading = document.getElementById('loading-state');
+    const errorEl = document.getElementById('error-state');
+    const videoContainer = document.getElementById('video-container');
+    const video = document.getElementById('replay-video');
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function setLoading(active) {
+      btn.disabled = active;
+      loading.classList.toggle('hidden', !active);
+      if (active) errorEl.classList.add('hidden');
+    }
+
+    btn.addEventListener('click', async () => {
+      setLoading(true);
+      videoContainer.classList.add('hidden');
+
+      try {
+        const response = await fetch(window.location.href, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Generation failed.');
+        }
+
+        video.src = data.video_url;
+        videoContainer.classList.remove('hidden');
+        video.load();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      } finally {
+        setLoading(false);
+      }
+    });
+  </script>
+</body>
+</html>
